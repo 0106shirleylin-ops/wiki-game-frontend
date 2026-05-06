@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>Wikipedia Race</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+    <h1>Wikipedia Race</h1>
+
+    <button id="startBtn">開始遊戲</button>
+
+    <div id="gameArea" class="hidden">
+        <div class="info">
+            <p>目標頁面：<span id="targetTitle">-</span></p>
+            <p>目前頁面：<span id="currentTitle">-</span></p>
+            <p>步數：<span id="stepCount">0</span></p>
+            <p>時間：<span id="timer">0</span> 秒</p>
+        </div>
+
+        <h2>可點擊連結</h2>
+        <ul id="linkList"></ul>
+    </div>
+
+    <div id="resultArea" class="hidden">
+        <h2>遊戲完成！</h2>
+        <p>總步數：<span id="finalSteps"></span></p>
+        <p>總時間：<span id="finalTime"></span> 秒</p>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
