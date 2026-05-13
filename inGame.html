@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wikipedia Race - 遊戲中</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 250px;
+            gap: 20px;
+            padding: 20px;
+            height: 100vh;
+        }
+
+        /* 左上角：連眼條（進度條）*/
+        .progress-bar {
+            grid-column: 1;
+            grid-row: 1;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #fff;
+            border-radius: 10px;
+            padding: 15px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .progress-bar-label {
+            font-size: 16px;
+            font-weight: bold;
+            margin-right: 15px;
+        }
+
+        .progress-bar-fill {
+            flex: 1;
+            height: 30px;
+            background: linear-gradient(90deg, #ff9500, #ff6b6b);
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 30%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3));
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .progress-percent {
+            margin-left: 15px;
+            font-weight: bold;
+            min-width: 60px;
+        }
+
+        /* 中間大區域：結球基（主遊戲區） */
+        .game-area {
+            grid-column: 1 / 3;
+            grid-row: 2 / 4;
+            border: 3px solid #fff;
+            border-radius: 15px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .game-header {
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .game-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 10px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 14px;
+            color: #ccc;
+            margin-bottom: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .info-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ff9500;
+        }
+
+        .links-section h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #ffcc00;
+            text-transform: uppercase;
+        }
+
+        .links-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .link-button {
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #ff9500, #ff6b6b);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .link-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255, 152, 0, 0.4);
+        }
+
+        .link-button:active {
+            transform: translateY(-1px);
+        }
+
+        /* 右上角圓形：提示教學 */
+        .hint-box {
+            grid-column: 3;
+            grid-row: 1;
+            border: 3px solid #ff9500;
+            border-radius: 50%;
+            width: 100%;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(255, 152, 0, 0.1);
+            text-align: center;
+        }
+
+        .hint-content {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* 右邊：路徑（歷程） */
+        .path-section {
+            grid-column: 3;
+            grid-row: 2;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        .path-section h4 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: #ffcc00;
+            text-transform: uppercase;
+        }
+
+        .path-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .path-item {
+            padding: 8px 12px;
+            background: rgba(255, 152, 0, 0.2);
+            border-left: 3px solid #ff9500;
+            border-radius: 4px;
+            font-size: 13px;
+            word-break: break-word;
+        }
+
+        .path-item.current {
+            background: rgba(255, 152, 0, 0.4);
+            font-weight: bold;
+            border-left-width: 5px;
+        }
+
+        /* 右下角：日期間（時間/步數） */
+        .stats-box {
+            grid-column: 3;
+            grid-row: 3;
+            border: 2px solid #fff;
+            border-radius: 10px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+        }
+
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stats-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .stats-label {
+            font-size: 13px;
+            color: #ccc;
+            text-transform: uppercase;
+        }
+
+        .stats-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #ffcc00;
+        }
+
+        /* 滾動條美化 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 152, 0, 0.5);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 152, 0, 0.8);
+        }
+
+        /* 響應式設計 */
+        @media (max-width: 1200px) {
+            .container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+
+            .progress-bar {
+                grid-column: 1;
+            }
+
+            .game-area {
+                grid-column: 1;
+            }
+
+            .hint-box,
+            .path-section,
+            .stats-box {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 左上角：進度條 -->
+    <div class="progress-bar">
+        <span class="progress-bar-label">連眼條</span>
+        <div class="progress-bar-fill"></div>
+        <span class="progress-percent">30%</span>
+    </div>
+
+    <!-- 中間大區域：遊戲主區 -->
+    <div class="game-area">
+        <div class="game-header">
+            <h1>結球基</h1>
+        </div>
+
+        <div class="game-info">
+            <div class="info-item">
+                <span class="info-label">目標頁面</span>
+                <span class="info-value" id="targetTitle">日本</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">目前頁面</span>
+                <span class="info-value" id="currentTitle">台灣</span>
+            </div>
+        </div>
+
+        <div class="links-section">
+            <h3>可點擊連結</h3>
+            <div class="links-list" id="linkList">
+                <button class="link-button">台北市</button>
+                <button class="link-button">中華民國</button>
+                <button class="link-button">日本</button>
+                <button class="link-button">中國</button>
+                <button class="link-button">太平洋</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右上角圓形：提示教學 -->
+    <div class="hint-box">
+        <div class="hint-content">
+            <strong>提示教學</strong><br><br>
+            點擊連結從「台灣」跳到「日本」！<br>
+            盡量用最少步數達成！
+        </div>
+    </div>
+
+    <!-- 右邊：路徑歷程 -->
+    <div class="path-section">
+        <h4>路徑</h4>
+        <ul class="path-list">
+            <li class="path-item current">▸ 台灣</li>
+            <li class="path-item">▸ 中華民國</li>
+            <li class="path-item">▸ 東亞</li>
+        </ul>
+    </div>
+
+    <!-- 右下角：時間/步數 -->
+    <div class="stats-box">
+        <div class="stats-item">
+            <span class="stats-label">步數</span>
+            <span class="stats-value" id="stepCount">3</span>
+        </div>
+        <div class="stats-item">
+            <span class="stats-label">時間</span>
+            <span class="stats-value" id="timer">45<small>秒</small></span>
+        </div>
+        <div class="stats-item">
+            <span class="stats-label">進度</span>
+            <span class="stats-value" id="progress">50%</span>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
