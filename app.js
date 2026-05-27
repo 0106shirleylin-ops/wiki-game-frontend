@@ -4,6 +4,7 @@ let currentTitle = "";
 let stepCount = 0;
 let seconds = 0;
 let timerId = null;
+let pathHistory = [];
 
 // 暫時假資料：之後等後端給 wiki links API 再換掉
 const fakeLinks = {
@@ -12,13 +13,43 @@ const fakeLinks = {
     "中華民國": ["台灣", "中國", "台北市", "歷史"],
     "日本": ["台灣", "東京", "亞洲"],
     "中國": ["台灣", "北京", "亞洲"],
-    "太平洋": ["台灣", "海洋", "日本"]
+    "太平洋": ["台灣", "海洋", "日本"],
+    "東京": ["日本", "亞洲", "東京灣"],
+    "亞洲": ["日本", "中國", "東南亞"],
+    "新北市": ["台灣", "台北市"],
+    "北京": ["中國", "長城"],
+    "長城": ["中國", "北京"],
+    "海洋": ["太平洋", "大西洋"],
+    "歷史": ["台灣", "中華民國"],
+    "東南亞": ["亞洲", "東南亞國協"],
+    "東南亞國協": ["東南亞", "泰國"],
+    "泰國": ["東南亞", "曼谷"],
+    "曼谷": ["泰國", "東南亞"],
+    "大西洋": ["海洋", "北美洲"],
+    "北美洲": ["大西洋", "美國"],
+    "美國": ["北美洲", "紐約"],
+    "紐約": ["美國", "曼哈頓"],
+    "東京灣": ["東京", "日本"],
+    "捷運": ["台北市", "台灣"],
+    "曼哈頓": ["紐約", "美國"]
 };
 
+// 事件監聽
 document.getElementById("startBtn").addEventListener("click", startGame);
 
+// 如果在 inGame.html，綁定 restartBtn
+if (document.getElementById("restartBtn")) {
+    document.getElementById("restartBtn").addEventListener("click", () => {
+        window.location.href = "index.html";
+    });
+}
+
+// ========== 遊戲邏輯 ==========
 async function startGame() {
-    resetGame();
+    // 淡出動畫
+    const mainScreen = document.getElementById("mainScreen");
+    mainScreen.style.transition = "opacity 0.6s ease";
+    mainScreen.style.opacity = "0";
 
     try {
         const response = await fetch("http://localhost:5000/api/get_question");
@@ -26,43 +57,44 @@ async function startGame() {
 
         if (json.status !== "success") {
             alert("取得題目失敗");
+            mainScreen.style.opacity = "1";
             return;
         }
 
         startTitle = json.data.start_title;
         targetTitle = json.data.end_title;
-        currentTitle = startTitle;
 
-        document.getElementById("targetTitle").innerText = targetTitle;
-        document.getElementById("currentTitle").innerText = currentTitle;
-        document.getElementById("gameArea").classList.remove("hidden");
+        // 將題目資訊存到 sessionStorage
+        sessionStorage.setItem("startTitle", startTitle);
+        sessionStorage.setItem("targetTitle", targetTitle);
+        sessionStorage.setItem("gameStartTime", new Date().getTime());
 
-        startTimer();
-        renderLinks(currentTitle);
+        // 延遲後跳轉到遊戲頁面，讓淡出動畫完成
+        setTimeout(() => {
+            window.location.href = "inGame.html";
+        }, 600);
 
     } catch (error) {
         console.error(error);
         alert("無法連到後端 API，請確認 Flask 有沒有啟動");
+        mainScreen.style.opacity = "1";
     }
 }
 
 function resetGame() {
     stepCount = 0;
     seconds = 0;
+    pathHistory = [];
 
     clearInterval(timerId);
     timerId = null;
-
-    document.getElementById("stepCount").innerText = "0";
-    document.getElementById("timer").innerText = "0";
-    document.getElementById("resultArea").classList.add("hidden");
-    document.getElementById("linkList").innerHTML = "";
 }
 
 function startTimer() {
     timerId = setInterval(() => {
         seconds++;
         document.getElementById("timer").innerText = seconds;
+        updateProgress();
     }, 1000);
 }
 
@@ -75,21 +107,37 @@ function renderLinks(title) {
     links.forEach(link => {
         const li = document.createElement("li");
         li.innerText = link;
-
         li.addEventListener("click", () => {
             goToPage(link);
         });
-
         linkList.appendChild(li);
+    });
+}
+
+function renderPath() {
+    const pathList = document.getElementById("pathList");
+    pathList.innerHTML = "";
+
+    pathHistory.forEach((page, index) => {
+        const li = document.createElement("li");
+        li.innerText = `▸ ${page}`;
+        if (page === currentTitle) {
+            li.classList.add("current");
+        }
+        pathList.appendChild(li);
     });
 }
 
 function goToPage(title) {
     currentTitle = title;
     stepCount++;
+    pathHistory.push(title);
 
     document.getElementById("currentTitle").innerText = currentTitle;
     document.getElementById("stepCount").innerText = stepCount;
+    
+    renderPath();
+    updateProgress();
 
     if (currentTitle === targetTitle) {
         finishGame();
@@ -99,12 +147,27 @@ function goToPage(title) {
     renderLinks(currentTitle);
 }
 
+function updateProgress() {
+    // 簡單的進度計算：根據步數（最多 20 步為 100%）
+    const progress = Math.min((stepCount / 20) * 100, 100);
+    document.querySelector(".progress-fill").style.width = progress + "%";
+    document.querySelector(".progress-percent").innerText = Math.round(progress) + "%";
+}
+
 function finishGame() {
     clearInterval(timerId);
 
     document.getElementById("finalSteps").innerText = stepCount;
     document.getElementById("finalTime").innerText = seconds;
-    document.getElementById("resultArea").classList.remove("hidden");
 
-    alert("恭喜抵達目標頁面！");
+    // 淡出效果後返回主頁
+    const gameScreen = document.getElementById("gameScreen");
+    if (gameScreen) {
+        gameScreen.style.transition = "opacity 0.6s ease";
+        gameScreen.style.opacity = "0";
+        
+        setTimeout(() => {
+            window.location.href = "index.html";
+        }, 600);
+    }
 }
