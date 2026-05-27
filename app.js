@@ -48,37 +48,24 @@ if (document.getElementById("restartBtn")) {
 async function startGame() {
     // 淡出動畫
     const mainScreen = document.getElementById("mainScreen");
-    mainScreen.style.transition = "opacity 0.6s ease";
-    mainScreen.style.opacity = "0";
-
-    try {
-        const response = await fetch("http://localhost:5000/api/get_question");
-        const json = await response.json();
-
-        if (json.status !== "success") {
-            alert("取得題目失敗");
-            mainScreen.style.opacity = "1";
-            return;
-        }
-
-        startTitle = json.data.start_title;
-        targetTitle = json.data.end_title;
-
-        // 將題目資訊存到 sessionStorage
-        sessionStorage.setItem("startTitle", startTitle);
-        sessionStorage.setItem("targetTitle", targetTitle);
-        sessionStorage.setItem("gameStartTime", new Date().getTime());
-
-        // 延遲後跳轉到遊戲頁面，讓淡出動畫完成
-        setTimeout(() => {
-            window.location.href = "inGame.html";
-        }, 600);
-
-    } catch (error) {
-        console.error(error);
-        alert("無法連到後端 API，請確認 Flask 有沒有啟動");
-        mainScreen.style.opacity = "1";
+    if (mainScreen) {
+        mainScreen.style.transition = "opacity 0.6s ease";
+        mainScreen.style.opacity = "0";
     }
+
+    // 固定的 3 步遊戲測試
+    startTitle = "台灣";
+    targetTitle = "東京";
+    
+    // 將題目資訊存到 sessionStorage
+    sessionStorage.setItem("startTitle", startTitle);
+    sessionStorage.setItem("targetTitle", targetTitle);
+    sessionStorage.setItem("gameStartTime", new Date().getTime());
+
+    // 延遲後跳轉到遊戲頁面
+    setTimeout(() => {
+        window.location.href = "inGame.html";
+    }, 600);
 }
 
 function resetGame() {

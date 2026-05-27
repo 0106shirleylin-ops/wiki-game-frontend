@@ -23,26 +23,33 @@
         <div class="game-main">
             <!-- 左：遊戲區域 -->
             <div class="game-area">
-                <div class="game-info">
-                    <div class="info-box">
-                        <span class="info-label">目標頁面</span>
-                        <span class="info-value" id="targetTitle">-</span>
-                    </div>
-                    <div class="divider"></div>
-                    <div class="info-box">
-                        <span class="info-label">目前頁面</span>
-                        <span class="info-value" id="currentTitle">-</span>
-                    </div>
-                </div>
-
                 <div class="links-section">
-                    <h3>可點擊連結</h3>
-                    <ul id="linkList" class="links-list"></ul>
+                    <h3>Wikipedia 頁面</h3>
+                    <div class="wiki-frame-container">
+                        <iframe id="wikiFrame" src="" style="border: none; border-radius: 8px;"></iframe>
+                    </div>
                 </div>
             </div>
 
             <!-- 右：側欄 -->
             <div class="sidebar">
+                <!-- 遊戲資訊 -->
+                <div class="game-info-box">
+                    <div class="info-item">
+                        <span class="info-label">目標</span>
+                        <span class="info-value" id="targetTitle">-</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">目前</span>
+                        <span class="info-value" id="currentTitle">-</span>
+                    </div>
+                </div>
+
+                <!-- 返回按鈕 -->
+                <button id="backBtn" class="back-btn" onclick="goBackPage()" style="display: none;">
+                    ← 返回上一頁
+                </button>
+
                 <!-- 提示框 -->
                 <div class="hint-circle">
                     <div class="hint-content">
@@ -74,8 +81,17 @@
     </div>
 </div>
 
+<script src="app.js"></script>
 <script>
-    // inGame.html 初始化 - 從 sessionStorage 讀取題目
+    // 允許的連結對應（3 步測試遊戲）
+    const allowedLinks = {
+        "台灣": ["日本", "中國", "東南亞"],
+        "日本": ["東京", "亞洲", "台灣"],
+        "東京": ["日本", "關東", "富士山"],
+        // 其他頁面的連結會被擋掉
+    };
+
+    // inGame.html 初始化
     document.addEventListener("DOMContentLoaded", function() {
         const startTitleFromSession = sessionStorage.getItem("startTitle");
         const targetTitleFromSession = sessionStorage.getItem("targetTitle");
@@ -100,14 +116,118 @@
             }, 50);
 
             startTimer();
-            renderLinks(currentTitle);
+            loadWikiPage(currentTitle);
             renderPath();
+
         } else {
             // 沒有題目資訊，返回主頁
             alert("遊戲資訊遺失，請重新開始");
             window.location.href = "index.html";
         }
     });
+
+    // 載入 Wiki 頁面到 iframe
+    function loadWikiPage(pageTitle) {
+        const wikiFrame = document.getElementById("wikiFrame");
+        const wikiUrl = `https://zh.wikipedia.org/wiki/${encodeURIComponent(pageTitle)}`;
+        wikiFrame.src = wikiUrl;
+
+        // 監聽 iframe 內的連結點擊
+        setTimeout(() => {
+            try {
+                const iframeDoc = wikiFrame.contentDocument || wikiFrame.contentWindow.document;
+                if (iframeDoc) {
+                    const links = iframeDoc.querySelectorAll("a");
+                    links.forEach(link => {
+                        link.addEventListener("click", (e) => {
+                            handleWikiLinkClick(e, link);
+                        });
+                    });
+                }
+            } catch (error) {
+                console.log("無法存取 iframe 內容（跨域限制）:", error);
+            }
+        }, 2000); // 等待 iframe 載入
+    }
+
+    // 處理 Wiki 連結點擊
+    function handleWikiLinkClick(e, link) {
+        e.preventDefault();
+        
+        // 提取頁面名稱
+        const href = link.getAttribute("href");
+        if (!href || !href.includes("/wiki/")) return;
+        
+        const nextPageTitle = decodeURIComponent(href.split("/wiki/")[1]);
+        
+        // 檢查是否允許
+        if (isLinkAllowed(currentTitle, nextPageTitle)) {
+            goToWikiPage(nextPageTitle);
+        } else {
+            alert(`「${nextPageTitle}」超出遊戲允許範圍`);
+        }
+    }
+
+    // 檢查連結是否允許
+    function isLinkAllowed(currentPage, nextPage) {
+        const allowedForCurrentPage = allowedLinks[currentPage] || [];
+        return allowedForCurrentPage.includes(nextPage);
+    }
+
+    // 跳轉到新的 Wiki 頁面
+    function goToWikiPage(pageTitle) {
+        currentTitle = pageTitle;
+        stepCount++;
+
+        document.getElementById("currentTitle").innerText = currentTitle;
+        document.getElementById("stepCount").innerText = stepCount;
+        
+        pathHistory.push(pageTitle);
+        renderPath();
+        updateProgress();
+
+        // 顯示返回按鈕（除了第一頁）
+        const backBtn = document.getElementById("backBtn");
+        if (stepCount > 1) {
+            backBtn.style.display = "block";
+        }
+
+        // 載入新頁面
+        loadWikiPage(pageTitle);
+
+        // 檢查是否到達目標
+        if (currentTitle === targetTitle) {
+            finishGame();
+        }
+    }
+
+    // 返回上一個頁面
+    function goBackPage() {
+        if (pathHistory.length <= 1) {
+            alert("已經在第一頁了");
+            return;
+        }
+
+        // 移除當前頁面，回到前一個
+        pathHistory.pop();
+        currentTitle = pathHistory[pathHistory.length - 1];
+        stepCount = pathHistory.length - 1;
+
+        // 更新 UI
+        document.getElementById("currentTitle").innerText = currentTitle;
+        document.getElementById("stepCount").innerText = stepCount;
+        renderPath();
+        updateProgress();
+
+        // 隱藏返回按鈕（回到第一頁）
+        const backBtn = document.getElementById("backBtn");
+        if (stepCount === 1) {
+            backBtn.style.display = "none";
+        }
+
+        // 載入頁面
+        loadWikiPage(currentTitle);
+    }
 </script>
 </body>
 </html>
